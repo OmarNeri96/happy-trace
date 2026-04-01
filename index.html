@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Happy Trace — Pizarrón Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1a1a18;
+    --surface: #242422;
+    --surface2: #2e2e2b;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #f0ede6;
+    --text-muted: #8a8880;
+    --accent: #e8d5a3;
+    --accent2: #c4a96b;
+    --danger: #e05252;
+    --radius: 10px;
+    --toolbar-h: 64px;
+    --statusbar-h: 32px;
+    --mono: 'DM Mono', monospace;
+    --display: 'Playfair Display', serif;
+  }
+
+  html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--mono); }
+
+  /* ── Layout ── */
+  #app { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
+
+  /* ── Header ── */
+  header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 20px; height: var(--toolbar-h);
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    flex-wrap: wrap; overflow: hidden;
+  }
+
+  .logo {
+    font-family: var(--display); font-size: 20px; color: var(--accent);
+    letter-spacing: -0.02em; white-space: nowrap; margin-right: 8px;
+    flex-shrink: 0;
+  }
+
+  .sep { width: 1px; height: 28px; background: var(--border2); flex-shrink: 0; }
+
+  /* ── Tool groups ── */
+  .group { display: flex; align-items: center; gap: 4px; }
+  .group-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-right: 2px; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    height: 34px; padding: 0 12px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius); color: var(--text); font-family: var(--mono); font-size: 12px;
+    cursor: pointer; transition: background 0.12s, border-color 0.12s, transform 0.08s;
+    white-space: nowrap; flex-shrink: 0; user-select: none;
+  }
+  .btn:hover { background: #3a3a36; border-color: rgba(255,255,255,0.25); }
+  .btn:active { transform: scale(0.96); }
+  .btn.active { background: var(--accent); border-color: var(--accent2); color: #1a1a18; font-weight: 500; }
+  .btn.icon { width: 34px; padding: 0; font-size: 15px; }
+  .btn.danger:hover { background: rgba(224,82,82,0.15); border-color: var(--danger); color: var(--danger); }
+
+  /* ── Color swatch ── */
+  #color-pick { width: 34px; height: 34px; border-radius: var(--radius); border: 1px solid var(--border2); cursor: pointer; background: none; padding: 2px; flex-shrink: 0; }
+  #bg-pick { width: 34px; height: 34px; border-radius: var(--radius); border: 1px solid var(--border2); cursor: pointer; background: none; padding: 2px; flex-shrink: 0; }
+
+  /* ── Palette chips ── */
+  .chip {
+    width: 20px; height: 20px; border-radius: 5px; cursor: pointer; flex-shrink: 0;
+    border: 1.5px solid transparent; transition: transform 0.1s, border-color 0.1s;
+  }
+  .chip:hover { transform: scale(1.2); border-color: rgba(255,255,255,0.4); }
+
+  /* ── Sliders ── */
+  input[type=range] {
+    -webkit-appearance: none; height: 4px; border-radius: 2px;
+    background: var(--border2); outline: none; cursor: pointer; width: 80px; flex-shrink: 0;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--bg); cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--bg); cursor: pointer;
+  }
+
+  .val-badge {
+    font-size: 10px; color: var(--accent); min-width: 30px; text-align: right; flex-shrink: 0;
+  }
+
+  /* ── Canvas area ── */
+  #canvas-wrap {
+    position: relative; overflow: hidden;
+    cursor: crosshair; background: #fff;
+  }
+  #canvas { display: block; width: 100%; height: 100%; }
+
+  /* ── Status bar ── */
+  footer {
+    height: var(--statusbar-h); padding: 0 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--text-muted); gap: 16px;
+  }
+  footer span { white-space: nowrap; }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 6px; }
+
+  /* ── Tooltip ── */
+  .btn[title] { position: relative; }
+
+  /* ── Spacer ── */
+  .spacer { flex: 1; }
+
+  /* ── Notification toast ── */
+  #toast {
+    position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius);
+    padding: 8px 18px; font-size: 12px; color: var(--accent);
+    opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; z-index: 100;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Responsive ── */
+  @media (max-width: 700px) {
+    header { height: auto; padding: 8px 12px; gap: 8px; }
+    .logo { font-size: 16px; }
+    input[type=range] { width: 60px; }
+    .group-label { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <span class="logo">Happy Trace</span>
+    <div class="sep"></div>
+
+    <!-- Herramientas de dibujo -->
+    <div class="group">
+      <span class="group-label">Modo</span>
+      <button class="btn icon active" id="btn-pen" title="Pincel libre">✏️</button>
+      <button class="btn icon" id="btn-line" title="Línea recta">╱</button>
+      <button class="btn icon" id="btn-rect" title="Rectángulo">▭</button>
+      <button class="btn icon" id="btn-circle" title="Elipse">◯</button>
+      <button class="btn icon" id="btn-fill" title="Relleno">🪣</button>
+      <button class="btn icon" id="btn-eraser" title="Goma">⬜</button>
+      <button class="btn icon" id="btn-eyedrop" title="Cuentagotas">💧</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- Color -->
+    <div class="group">
+      <span class="group-label">Color</span>
+      <input type="color" id="color-pick" value="#e05252" title="Color de trazo">
+      <div id="palette" class="group"></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- Tamaño -->
+    <div class="group">
+      <span class="group-label">Trazo</span>
+      <input type="range" id="size-range" min="1" max="80" value="8">
+      <span class="val-badge" id="size-val">8</span>
+    </div>
+
+    <!-- Opacidad -->
+    <div class="group">
+      <span class="group-label">Opac.</span>
+      <input type="range" id="opacity-range" min="5" max="100" value="100">
+      <span class="val-badge" id="opacity-val">100%</span>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- Fondo -->
+    <div class="group">
+      <span class="group-label">Fondo</span>
+      <input type="color" id="bg-pick" value="#ffffff" title="Color de fondo">
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- Acciones -->
+    <div class="group">
+      <button class="btn" id="btn-undo" title="Ctrl+Z">↩ Deshacer</button>
+      <button class="btn danger" id="btn-clear" title="Limpiar todo">🗑 Limpiar</button>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="group">
+      <button class="btn" id="btn-download" title="Guardar como PNG">⬇ Guardar PNG</button>
+    </div>
+  </header>
+
+  <div id="canvas-wrap">
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <footer>
+    <span><span class="dot"></span><span id="mode-display">Pincel libre</span></span>
+    <span id="pos-display">x: 0 &nbsp; y: 0</span>
+    <span id="dim-display">—</span>
+    <span id="hist-display">Historial: 0</span>
+  </footer>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+(() => {
+  const canvas  = document.getElementById('canvas');
+  const ctx     = canvas.getContext('2d');
+  const wrap    = document.getElementById('canvas-wrap');
+  const colorPick   = document.getElementById('color-pick');
+  const bgPick      = document.getElementById('bg-pick');
+  const sizeRange   = document.getElementById('size-range');
+  const sizeVal     = document.getElementById('size-val');
+  const opacityRange = document.getElementById('opacity-range');
+  const opacityVal  = document.getElementById('opacity-val');
+  const modeDisplay = document.getElementById('mode-display');
+  const posDisplay  = document.getElementById('pos-display');
+  const dimDisplay  = document.getElementById('dim-display');
+  const histDisplay = document.getElementById('hist-display');
+  const toast       = document.getElementById('toast');
+
+  // ── Paleta ──────────────────────────────────────────────────────────
+  const PALETTE = [
+    '#1a1a18','#f0ede6','#e05252','#e8874e','#e8d26a',
+    '#5aaa6e','#4a9fd4','#7b6bd4','#d46bab','#8a8880'
+  ];
+
+  const paletteEl = document.getElementById('palette');
+  PALETTE.forEach(c => {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.style.background = c;
+    chip.title = c;
+    chip.addEventListener('click', () => { color = c; colorPick.value = c; });
+    paletteEl.appendChild(chip);
+  });
+
+  // ── Estado ──────────────────────────────────────────────────────────
+  let W, H;
+  let color    = '#e05252';
+  let bgColor  = '#ffffff';
+  let size     = 8;
+  let opacity  = 1;
+  let mode     = 'pen';
+  let isDown   = false;
+  let startX   = 0, startY = 0;
+  let snapshot = null;
+  let history  = [];
+  const MAX_HIST = 50;
+
+  const MODE_LABELS = {
+    pen:     'Pincel libre',
+    line:    'Línea recta',
+    rect:    'Rectángulo',
+    circle:  'Elipse',
+    fill:    'Relleno (cubo)',
+    eraser:  'Goma',
+    eyedrop: 'Cuentagotas'
+  };
+
+  // ── Canvas resize ────────────────────────────────────────────────────
+  function resize() {
+    const snap = canvas.width > 0 ? ctx.getImageData(0, 0, canvas.width, canvas.height) : null;
+    W = wrap.clientWidth;
+    H = wrap.clientHeight;
+    canvas.width  = W;
+    canvas.height = H;
+    dimDisplay.textContent = `${W} × ${H} px`;
+    fillBg();
+    if (snap) ctx.putImageData(snap, 0, 0);
+  }
+
+  function fillBg() {
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+
+  // ── Historial ────────────────────────────────────────────────────────
+  function saveHistory() {
+    history.push(ctx.getImageData(0, 0, W, H));
+    if (history.length > MAX_HIST) history.shift();
+    histDisplay.textContent = `Historial: ${history.length}`;
+  }
+
+  // ── Controles ────────────────────────────────────────────────────────
+  colorPick.addEventListener('input', e => { color = e.target.value; });
+  bgPick.addEventListener('input', e => {
+    bgColor = e.target.value;
+    fillBg();
+  });
+  sizeRange.addEventListener('input', e => {
+    size = +e.target.value;
+    sizeVal.textContent = size;
+  });
+  opacityRange.addEventListener('input', e => {
+    opacity = +e.target.value / 100;
+    opacityVal.textContent = e.target.value + '%';
+  });
+
+  // ── Modo ─────────────────────────────────────────────────────────────
+  const BTN_IDS = ['pen','line','rect','circle','fill','eraser','eyedrop'];
+  BTN_IDS.forEach(m => {
+    document.getElementById('btn-' + m).addEventListener('click', () => setMode(m));
+  });
+
+  function setMode(m) {
+    mode = m;
+    BTN_IDS.forEach(k => document.getElementById('btn-' + k).classList.toggle('active', k === m));
+    modeDisplay.textContent = MODE_LABELS[m];
+    wrap.style.cursor = m === 'eyedrop' ? 'cell' : m === 'eraser' ? 'cell' : 'crosshair';
+  }
+
+  // ── Acciones ─────────────────────────────────────────────────────────
+  document.getElementById('btn-undo').addEventListener('click', undo);
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    saveHistory();
+    fillBg();
+    showToast('Lienzo limpio');
+  });
+  document.getElementById('btn-download').addEventListener('click', download);
+
+  function undo() {
+    if (!history.length) return;
+    ctx.putImageData(history.pop(), 0, 0);
+    histDisplay.textContent = `Historial: ${history.length}`;
+    showToast('Deshacer');
+  }
+
+  function download() {
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'happy_trace_' + Date.now() + '.png';
+    a.click();
+    showToast('Imagen guardada ✓');
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  // ── Utilidades canvas ────────────────────────────────────────────────
+  function applyStyle(erase = false) {
+    ctx.globalAlpha = erase ? 1 : opacity;
+    ctx.strokeStyle = erase ? bgColor : color;
+    ctx.fillStyle   = erase ? bgColor : color;
+    ctx.lineWidth   = size;
+    ctx.lineCap     = 'round';
+    ctx.lineJoin    = 'round';
+  }
+
+  function hexToRgb(hex) {
+    const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return r ? [parseInt(r[1],16), parseInt(r[2],16), parseInt(r[3],16)] : [0,0,0];
+  }
+
+  // ── Flood fill ────────────────────────────────────────────────────────
+  function floodFill(px, py) {
+    const imgData = ctx.getImageData(0, 0, W, H);
+    const data    = imgData.data;
+    px = Math.round(px); py = Math.round(py);
+    const idx = (py * W + px) * 4;
+    const [tr,tg,tb,ta] = [data[idx],data[idx+1],data[idx+2],data[idx+3]];
+    const fc = hexToRgb(color);
+    if (tr===fc[0] && tg===fc[1] && tb===fc[2] && ta===255) return;
+    const stack   = [[px, py]];
+    const visited = new Uint8Array(W * H);
+    while (stack.length) {
+      const [cx, cy] = stack.pop();
+      if (cx < 0 || cx >= W || cy < 0 || cy >= H) continue;
+      if (visited[cy * W + cx]) continue;
+      visited[cy * W + cx] = 1;
+      const i = (cy * W + cx) * 4;
+      if (Math.abs(data[i]-tr)>30 || Math.abs(data[i+1]-tg)>30 || Math.abs(data[i+2]-tb)>30 || Math.abs(data[i+3]-ta)>30) continue;
+      data[i]=fc[0]; data[i+1]=fc[1]; data[i+2]=fc[2]; data[i+3]=255;
+      stack.push([cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]);
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  // ── Eyedrop ───────────────────────────────────────────────────────────
+  function eyedrop(px, py) {
+    const d   = ctx.getImageData(Math.round(px), Math.round(py), 1, 1).data;
+    const hex = '#' + [d[0],d[1],d[2]].map(v => v.toString(16).padStart(2,'0')).join('');
+    color = hex;
+    colorPick.value = hex;
+    setMode('pen');
+    showToast('Color tomado: ' + hex);
+  }
+
+  // ── Coordenadas ───────────────────────────────────────────────────────
+  function getPos(e) {
+    const r     = canvas.getBoundingClientRect();
+    const scaleX = W / r.width;
+    const scaleY = H / r.height;
+    const src   = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - r.left) * scaleX, y: (src.clientY - r.top) * scaleY };
+  }
+
+  // ── Eventos ───────────────────────────────────────────────────────────
+  canvas.addEventListener('mousedown',  onDown);
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); onDown(e); }, { passive: false });
+  document.addEventListener('mouseup',  onUp);
+  document.addEventListener('touchend', e => { e.preventDefault(); onUp(e); },   { passive: false });
+  canvas.addEventListener('mousemove',  onMove);
+  canvas.addEventListener('touchmove',  e => { e.preventDefault(); onMove(e); }, { passive: false });
+
+  canvas.addEventListener('mousemove', e => {
+    const {x, y} = getPos(e);
+    posDisplay.textContent = `x: ${Math.round(x)} &nbsp; y: ${Math.round(y)}`;
+  });
+
+  function onDown(e) {
+    const {x, y} = getPos(e);
+    if (mode === 'eyedrop') { eyedrop(x, y); return; }
+    if (mode === 'fill')    { saveHistory(); floodFill(x, y); return; }
+    saveHistory();
+    isDown = true;
+    startX = x; startY = y;
+    applyStyle(mode === 'eraser');
+    if (mode === 'pen' || mode === 'eraser') {
+      ctx.beginPath();
+      ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      snapshot = ctx.getImageData(0, 0, W, H);
+    }
+  }
+
+  function onMove(e) {
+    if (!isDown) return;
+    const {x, y} = getPos(e);
+    const erase  = mode === 'eraser';
+    applyStyle(erase);
+    if (mode === 'pen' || erase) {
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+      ctx.fill();
+      startX = x; startY = y;
+    } else {
+      ctx.putImageData(snapshot, 0, 0);
+      ctx.beginPath();
+      if (mode === 'line') {
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      } else if (mode === 'rect') {
+        ctx.strokeRect(startX, startY, x - startX, y - startY);
+      } else if (mode === 'circle') {
+        const rx = (x - startX) / 2, ry = (y - startY) / 2;
+        ctx.ellipse(startX + rx, startY + ry, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+  }
+
+  function onUp() {
+    isDown   = false;
+    snapshot = null;
+  }
+
+  // ── Teclado ───────────────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
+    if (e.key === 'e') setMode('eraser');
+    if (e.key === 'p') setMode('pen');
+    if (e.key === 'l') setMode('line');
+    if (e.key === 'r') setMode('rect');
+    if (e.key === 'c') setMode('circle');
+    if (e.key === 'f') setMode('fill');
+    if (e.key === 'i') setMode('eyedrop');
+    if (e.key === '[') { size = Math.max(1, size - 2); sizeRange.value = size; sizeVal.textContent = size; }
+    if (e.key === ']') { size = Math.min(80, size + 2); sizeRange.value = size; sizeVal.textContent = size; }
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────
+  window.addEventListener('resize', resize);
+  resize();
+  setTimeout(resize, 50);
+
+})();
+</script>
+</body>
+</html>
