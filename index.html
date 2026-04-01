@@ -8,23 +8,27 @@
 <title>Happy Trace</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+*, *::before, *::after {
+  box-sizing: border-box; margin: 0; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
 
 :root {
-  --bg:      #0a0f1e;
-  --surf:    #111827;
-  --surf2:   #1e2a3a;
-  --surf3:   #243043;
-  --border:  rgba(99,140,200,0.20);
-  --border2: rgba(99,140,200,0.38);
-  --text:    #dce8f5;
-  --muted:   #6b8aac;
-  --accent:  #7eb8f7;
-  --accent2: #4a90d9;
-  --danger:  #e05252;
-  --r:       10px;
-  --mono:    'DM Mono', monospace;
-  --serif:   'Playfair Display', serif;
+  --bg:     #0a0f1e;
+  --surf:   #111827;
+  --surf2:  #1e2a3a;
+  --surf3:  #243043;
+  --bord:   rgba(99,140,200,0.20);
+  --bord2:  rgba(99,140,200,0.38);
+  --text:   #dce8f5;
+  --muted:  #6b8aac;
+  --acc:    #7eb8f7;
+  --acc2:   #4a90d9;
+  --danger: #e05252;
+  --r:      10px;
+  --mono:   'DM Mono', monospace;
+  --serif:  'Playfair Display', serif;
 }
 
 html, body {
@@ -33,40 +37,44 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--mono);
-  touch-action: none;
+  /* CLAVE: no poner touch-action en body */
 }
 
-/* ── Layout ── */
 #app {
   display: flex;
   flex-direction: column;
-  height: 100dvh; /* dynamic viewport height — fixes Safari bottom bar */
+  height: 100dvh;
 }
 
-/* ── Top bar (logo + acciones rápidas) ── */
+/* ── Top bar ── */
 #topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 14px;
-  height: 52px;
+  height: 54px;
   background: var(--surf);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--bord);
   flex-shrink: 0;
   gap: 10px;
+  /* Los botones del topbar deben recibir touch sin problemas */
+  touch-action: manipulation;
+  position: relative;
+  z-index: 10;
 }
 
 .logo {
   font-family: var(--serif);
   font-size: 18px;
-  color: var(--accent);
+  color: var(--acc);
   flex-shrink: 0;
 }
 
-.top-actions {
+.top-right {
   display: flex;
   gap: 6px;
   align-items: center;
+  touch-action: manipulation;
 }
 
 /* ── Canvas ── */
@@ -74,9 +82,9 @@ html, body {
   flex: 1;
   overflow: hidden;
   position: relative;
-  touch-action: none;
-  cursor: crosshair;
   background: #fff;
+  /* touch-action: none aquí para que el canvas capture el dibujo */
+  touch-action: none;
 }
 #canvas {
   display: block;
@@ -85,255 +93,205 @@ html, body {
   touch-action: none;
 }
 
-/* ── Bottom toolbar ── */
+/* ── Bottom bar ── */
 #bottombar {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 8px 10px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  padding: 10px 8px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
   background: var(--surf);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--bord);
   flex-shrink: 0;
   gap: 4px;
+  /* CLAVE: touch-action manipulation para que los botones respondan */
+  touch-action: manipulation;
+  position: relative;
+  z-index: 10;
 }
 
-/* ── Botones generales ── */
+/* ── Botones ── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border2);
+  gap: 5px;
+  border: 1.5px solid var(--bord2);
   border-radius: var(--r);
   background: var(--surf2);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 12px;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
-  transition: background 0.1s, transform 0.08s;
   white-space: nowrap;
   flex-shrink: 0;
+  /* CLAVE para iOS: usar touchend en vez de click */
+  touch-action: manipulation;
 }
-.btn:active { transform: scale(0.93); background: var(--surf3); }
-.btn.active  { background: var(--accent2); border-color: var(--accent); color: #fff; }
+.btn:active, .btn.pressing { background: var(--surf3); transform: scale(0.92); }
+.btn.active  { background: var(--acc2); border-color: var(--acc); color: #fff; }
+.btn.save    { background: var(--acc2); border-color: var(--acc); color: #fff; }
+.btn.danger  { border-color: var(--bord2); }
 .btn.danger:active { background: rgba(224,82,82,0.2); border-color: var(--danger); color: var(--danger); }
-.btn.save    { background: var(--accent2); border-color: var(--accent); color: #fff; }
 
-/* Tamaños */
-.btn-icon  { width: 42px; height: 42px; font-size: 18px; }
-.btn-sm    { height: 34px; padding: 0 12px; font-size: 12px; }
-.btn-top   { height: 34px; padding: 0 10px; font-size: 12px; }
+.btn-icon { width: 44px; height: 44px; font-size: 20px; }
+.btn-sm   { height: 36px; padding: 0 12px; font-size: 13px; }
+.btn-top  { height: 36px; padding: 0 10px; font-size: 13px; }
 
-/* ── Color picker visual ── */
-.color-btn {
-  width: 42px; height: 42px;
-  border-radius: var(--r);
-  border: 2px solid var(--border2);
-  cursor: pointer;
-  flex-shrink: 0;
+/* ── Color button ── */
+.color-wrap {
   position: relative;
+  width: 44px; height: 44px;
+  border-radius: var(--r);
+  border: 1.5px solid var(--bord2);
   overflow: hidden;
+  flex-shrink: 0;
+  touch-action: manipulation;
+  cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
-.color-btn input[type=color] {
-  position: absolute;
-  inset: 0;
+.color-wrap input[type=color] {
+  position: absolute; inset: 0;
   width: 100%; height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  border: none;
-  padding: 0;
+  opacity: 0; cursor: pointer;
+  border: none; padding: 0; margin: 0;
 }
-.color-preview {
-  width: 26px; height: 26px;
+.color-dot {
+  width: 28px; height: 28px;
   border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.4);
+  border: 2.5px solid rgba(255,255,255,0.35);
   pointer-events: none;
+  flex-shrink: 0;
 }
 
-/* ── Panel de herramientas (slide-up en móvil) ── */
-#panel-overlay {
+/* ── Panel slide-up ── */
+#overlay {
   display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  z-index: 50;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 40;
+  touch-action: manipulation;
 }
-#panel-overlay.open { display: block; }
+#overlay.open { display: block; }
 
-#tools-panel {
+#panel {
   position: fixed;
   bottom: 0; left: 0; right: 0;
   background: var(--surf);
-  border-top: 1px solid var(--border2);
-  border-radius: 16px 16px 0 0;
-  padding: 16px 16px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
-  z-index: 100;
+  border-top: 1.5px solid var(--bord2);
+  border-radius: 18px 18px 0 0;
+  padding: 14px 16px;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  z-index: 50;
   transform: translateY(100%);
-  transition: transform 0.28s cubic-bezier(0.32,0.72,0,1);
+  transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+  touch-action: manipulation;
 }
-#tools-panel.open { transform: translateY(0); }
+#panel.open { transform: translateY(0); }
 
-.panel-handle {
-  width: 36px; height: 4px;
-  background: var(--border2);
+.handle {
+  width: 38px; height: 4px;
+  background: var(--bord2);
   border-radius: 2px;
   margin: 0 auto 16px;
 }
 
-.panel-section {
-  margin-bottom: 16px;
-}
-.panel-title {
-  font-size: 10px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+.psec { margin-bottom: 16px; }
+.ptitle {
+  font-size: 10px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
   margin-bottom: 10px;
 }
-.panel-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
+.prow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-/* Paleta en panel */
-.palette-chip {
-  width: 36px; height: 36px;
+/* Paleta */
+.chip {
+  width: 38px; height: 38px;
   border-radius: 8px;
-  border: 2px solid transparent;
+  border: 2px solid rgba(255,255,255,0.08);
   cursor: pointer;
-  transition: transform 0.1s;
   flex-shrink: 0;
+  touch-action: manipulation;
 }
-.palette-chip:active { transform: scale(0.88); }
-.palette-chip.selected { border-color: #fff; }
+.chip:active { transform: scale(0.85); }
+.chip.sel { border-color: #fff; box-shadow: 0 0 0 2px var(--acc); }
 
-/* Slider en panel */
-.slider-wrap {
-  display: flex; align-items: center; gap: 10px; width: 100%;
+/* Sliders */
+.srow { display: flex; align-items: center; gap: 10px; width: 100%; }
+.srow label { font-size: 11px; color: var(--muted); min-width: 40px; }
+.srow input[type=range] {
+  flex: 1; -webkit-appearance: none;
+  height: 6px; border-radius: 3px;
+  background: var(--bord2); outline: none; cursor: pointer;
 }
-.slider-wrap label { font-size: 11px; color: var(--muted); min-width: 48px; }
-.slider-wrap input[type=range] {
-  flex: 1;
+.srow input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--border2);
-  outline: none;
-  cursor: pointer;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--acc); border: 3px solid var(--bg); cursor: pointer;
 }
-.slider-wrap input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 3px solid var(--bg);
-  cursor: pointer;
-}
-.slider-val {
-  font-size: 11px;
-  color: var(--accent);
-  min-width: 36px;
-  text-align: right;
-}
+.sval { font-size: 11px; color: var(--acc); min-width: 36px; text-align: right; }
 
-/* Modo botones en panel */
-.mode-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-.mode-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  height: 60px;
-  border: 1px solid var(--border2);
+/* Modos en panel */
+.mgrid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+.mbtn {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 4px; height: 62px;
+  border: 1.5px solid var(--bord2);
   border-radius: var(--r);
   background: var(--surf2);
-  color: var(--text);
-  font-size: 22px;
+  color: var(--text); font-size: 22px;
   cursor: pointer;
-  transition: background 0.1s, transform 0.08s;
+  touch-action: manipulation;
 }
-.mode-btn span { font-size: 9px; color: var(--muted); font-family: var(--mono); }
-.mode-btn:active { transform: scale(0.92); }
-.mode-btn.active { background: var(--accent2); border-color: var(--accent); }
-.mode-btn.active span { color: rgba(255,255,255,0.8); }
+.mbtn span { font-size: 9px; color: var(--muted); font-family: var(--mono); }
+.mbtn:active { transform: scale(0.90); }
+.mbtn.active { background: var(--acc2); border-color: var(--acc); }
+.mbtn.active span { color: rgba(255,255,255,0.8); }
 
-/* Color de fondo en panel */
-.bg-color-wrap {
+/* Fondo */
+.bgwrap {
   display: flex; align-items: center; gap: 10px;
 }
-.bg-color-btn {
-  width: 44px; height: 44px;
+.bgbtn {
+  width: 46px; height: 46px;
   border-radius: var(--r);
-  border: 2px solid var(--border2);
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
+  border: 1.5px solid var(--bord2);
+  position: relative; overflow: hidden;
+  touch-action: manipulation; cursor: pointer;
 }
-.bg-color-btn input[type=color] {
+.bgbtn input[type=color] {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   opacity: 0; cursor: pointer; border: none; padding: 0;
 }
-.bg-preview {
-  width: 100%; height: 100%;
-  pointer-events: none;
-}
+.bgprev { width: 100%; height: 100%; pointer-events: none; }
 
 /* Toast */
 #toast {
-  position: fixed;
-  bottom: 100px; left: 50%;
+  position: fixed; bottom: 110px; left: 50%;
   transform: translateX(-50%) translateY(10px);
-  background: var(--surf2);
-  border: 1px solid var(--border2);
-  border-radius: var(--r);
-  padding: 8px 18px;
-  font-size: 12px;
-  color: var(--accent);
-  opacity: 0;
-  transition: opacity 0.2s, transform 0.2s;
-  pointer-events: none;
-  z-index: 200;
-  white-space: nowrap;
+  background: var(--surf2); border: 1px solid var(--bord2);
+  border-radius: var(--r); padding: 8px 18px;
+  font-size: 12px; color: var(--acc);
+  opacity: 0; transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none; z-index: 200; white-space: nowrap;
 }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* Desktop: mostrar todo en topbar, ocultar bottom actions duplicadas */
+/* Desktop */
 @media (min-width: 768px) {
-  #topbar {
-    height: 60px;
-    gap: 8px;
-    justify-content: flex-start;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  #topbar::-webkit-scrollbar { display: none; }
   #bottombar { display: none; }
-  #desktop-tools { display: flex !important; align-items: center; gap: 8px; flex: 1; flex-wrap: nowrap; }
-  .sep { width: 1px; height: 26px; background: var(--border2); flex-shrink: 0; }
-  .grp { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-  .grp-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-right: 2px; }
-  input[type=range].desktop-slider {
-    -webkit-appearance: none; height: 4px; border-radius: 2px;
-    background: var(--border2); outline: none; cursor: pointer; width: 80px; flex-shrink: 0;
-  }
-  input[type=range].desktop-slider::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
-    background: var(--accent); border: 2px solid var(--bg); cursor: pointer;
-  }
-  .val { font-size: 11px; color: var(--accent); min-width: 32px; text-align: right; flex-shrink: 0; }
-  .spacer { flex: 1; }
+  #desktop { display: flex !important; align-items: center; gap: 8px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+  #desktop::-webkit-scrollbar { display: none; }
+  .sep { width: 1px; height: 24px; background: var(--bord2); flex-shrink: 0; }
+  .dgrp { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .dlbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .dslider { -webkit-appearance: none; height: 4px; border-radius: 2px; background: var(--bord2); outline: none; cursor: pointer; width: 80px; flex-shrink: 0; }
+  .dslider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--acc); border: 2px solid var(--bg); cursor: pointer; }
+  .dval { font-size: 11px; color: var(--acc); min-width: 32px; text-align: right; flex-shrink: 0; }
+  .dspacer { flex: 1; }
 }
 </style>
 </head>
@@ -344,11 +302,11 @@ html, body {
   <div id="topbar">
     <span class="logo">Happy Trace</span>
 
-    <!-- Desktop tools (hidden on mobile via JS/CSS) -->
-    <div id="desktop-tools" style="display:none">
+    <!-- Desktop toolbar (hidden mobile) -->
+    <div id="desktop" style="display:none">
       <div class="sep"></div>
-      <div class="grp">
-        <span class="grp-lbl">Modo</span>
+      <div class="dgrp">
+        <span class="dlbl">Modo</span>
         <button class="btn btn-sm active" data-mode="pen">✏️ Pincel</button>
         <button class="btn btn-sm" data-mode="line">╱ Linea</button>
         <button class="btn btn-sm" data-mode="rect">▭ Rect</button>
@@ -358,48 +316,48 @@ html, body {
         <button class="btn btn-sm" data-mode="eyedrop">💧 Color</button>
       </div>
       <div class="sep"></div>
-      <div class="grp">
-        <span class="grp-lbl">Color</span>
-        <div class="color-btn" style="width:36px;height:36px;">
-          <div class="color-preview" id="dt-color-preview" style="width:22px;height:22px;background:#e05252;"></div>
-          <input type="color" id="dt-color-pick" value="#e05252">
+      <div class="dgrp">
+        <span class="dlbl">Color</span>
+        <div class="color-wrap" style="width:34px;height:34px;">
+          <div class="color-dot" id="dt-dot" style="width:20px;height:20px;background:#e05252;"></div>
+          <input type="color" id="dt-color" value="#e05252">
         </div>
       </div>
       <div class="sep"></div>
-      <div class="grp">
-        <span class="grp-lbl">Trazo</span>
-        <input type="range" class="desktop-slider" id="dt-size" min="1" max="80" value="8">
-        <span class="val" id="dt-size-val">8px</span>
+      <div class="dgrp">
+        <span class="dlbl">Trazo</span>
+        <input type="range" class="dslider" id="dt-size" min="1" max="80" value="8">
+        <span class="dval" id="dt-size-v">8px</span>
       </div>
-      <div class="grp">
-        <span class="grp-lbl">Opac.</span>
-        <input type="range" class="desktop-slider" id="dt-opacity" min="5" max="100" value="100">
-        <span class="val" id="dt-opacity-val">100%</span>
+      <div class="dgrp">
+        <span class="dlbl">Opac.</span>
+        <input type="range" class="dslider" id="dt-opacity" min="5" max="100" value="100">
+        <span class="dval" id="dt-opacity-v">100%</span>
       </div>
       <div class="sep"></div>
-      <div class="grp">
-        <span class="grp-lbl">Fondo</span>
-        <div class="bg-color-btn" style="width:36px;height:36px;">
-          <div class="bg-preview" id="dt-bg-preview" style="background:#ffffff;"></div>
-          <input type="color" id="dt-bg-pick" value="#ffffff">
+      <div class="dgrp">
+        <span class="dlbl">Fondo</span>
+        <div class="bgbtn" style="width:34px;height:34px;">
+          <div class="bgprev" id="dt-bg-prev" style="background:#fff;"></div>
+          <input type="color" id="dt-bg" value="#ffffff">
         </div>
       </div>
       <div class="sep"></div>
-      <div class="grp">
+      <div class="dgrp">
         <button class="btn btn-sm" id="dt-undo">↩ Deshacer</button>
         <button class="btn btn-sm danger" id="dt-clear">🗑 Limpiar</button>
       </div>
-      <div class="spacer"></div>
-      <div class="grp">
-        <button class="btn btn-sm save" id="dt-download">⬇ Guardar PNG</button>
+      <div class="dspacer"></div>
+      <div class="dgrp">
+        <button class="btn btn-sm save" id="dt-dl">⬇ Guardar PNG</button>
       </div>
     </div>
 
-    <!-- Mobile top actions -->
-    <div class="top-actions" id="mobile-top-actions">
+    <!-- Mobile: acciones arriba derecha -->
+    <div class="top-right" id="mob-top">
       <button class="btn btn-top" id="mob-undo">↩</button>
       <button class="btn btn-top danger" id="mob-clear">🗑</button>
-      <button class="btn btn-top save" id="mob-download">⬇ PNG</button>
+      <button class="btn btn-top save" id="mob-dl">⬇ PNG</button>
     </div>
   </div>
 
@@ -408,70 +366,65 @@ html, body {
     <canvas id="canvas"></canvas>
   </div>
 
-  <!-- BOTTOM BAR (mobile only) -->
+  <!-- BOTTOM BAR (solo mobile) -->
   <div id="bottombar">
-    <!-- Modo actual -->
-    <button class="btn btn-icon active" id="mob-pen"     data-mode="pen">✏️</button>
-    <button class="btn btn-icon"        id="mob-line"    data-mode="line">╱</button>
-    <button class="btn btn-icon"        id="mob-rect"    data-mode="rect">▭</button>
-    <button class="btn btn-icon"        id="mob-circle"  data-mode="circle">◯</button>
-    <button class="btn btn-icon"        id="mob-fill"    data-mode="fill">🪣</button>
-    <button class="btn btn-icon"        id="mob-eraser"  data-mode="eraser">⬜</button>
-
-    <!-- Color picker visual -->
-    <div class="color-btn" id="mob-color-btn" title="Color">
-      <div class="color-preview" id="mob-color-preview" style="background:#e05252;"></div>
-      <input type="color" id="mob-color-pick" value="#e05252">
+    <button class="btn btn-icon active" id="bb-pen"    data-mode="pen">✏️</button>
+    <button class="btn btn-icon"        id="bb-line"   data-mode="line">╱</button>
+    <button class="btn btn-icon"        id="bb-rect"   data-mode="rect">▭</button>
+    <button class="btn btn-icon"        id="bb-circle" data-mode="circle">◯</button>
+    <button class="btn btn-icon"        id="bb-fill"   data-mode="fill">🪣</button>
+    <button class="btn btn-icon"        id="bb-eraser" data-mode="eraser">⬜</button>
+    <div class="color-wrap" id="mob-color-wrap">
+      <div class="color-dot" id="mob-dot" style="background:#e05252;"></div>
+      <input type="color" id="mob-color" value="#e05252">
     </div>
-
-    <!-- Más opciones -->
-    <button class="btn btn-icon" id="btn-more" title="Mas opciones">⚙️</button>
+    <button class="btn btn-icon" id="bb-more">⚙️</button>
   </div>
 
 </div>
 
-<!-- PANEL SLIDE-UP (mobile) -->
-<div id="panel-overlay"></div>
-<div id="tools-panel">
-  <div class="panel-handle"></div>
+<!-- PANEL -->
+<div id="overlay"></div>
+<div id="panel">
+  <div class="handle"></div>
 
-  <div class="panel-section">
-    <div class="panel-title">Paleta de colores</div>
-    <div class="panel-row" id="panel-palette"></div>
+  <div class="psec">
+    <div class="ptitle">Colores rapidos</div>
+    <div class="prow" id="palette"></div>
   </div>
 
-  <div class="panel-section">
-    <div class="panel-title">Tamaño del trazo</div>
-    <div class="slider-wrap">
-      <label id="size-label">8px</label>
-      <input type="range" id="panel-size" min="1" max="80" value="8">
-      <span class="slider-val" id="panel-size-val">8px</span>
+  <div class="psec">
+    <div class="ptitle">Tamano del trazo</div>
+    <div class="srow">
+      <label>Tamano</label>
+      <input type="range" id="p-size" min="1" max="80" value="8">
+      <span class="sval" id="p-size-v">8px</span>
     </div>
   </div>
 
-  <div class="panel-section">
-    <div class="panel-title">Opacidad</div>
-    <div class="slider-wrap">
-      <label>100%</label>
-      <input type="range" id="panel-opacity" min="5" max="100" value="100">
-      <span class="slider-val" id="panel-opacity-val">100%</span>
+  <div class="psec">
+    <div class="ptitle">Opacidad</div>
+    <div class="srow">
+      <label>Opac.</label>
+      <input type="range" id="p-opacity" min="5" max="100" value="100">
+      <span class="sval" id="p-opacity-v">100%</span>
     </div>
   </div>
 
-  <div class="panel-section">
-    <div class="panel-title">Color de fondo</div>
-    <div class="bg-color-wrap">
-      <div class="bg-color-btn">
-        <div class="bg-preview" id="panel-bg-preview" style="background:#ffffff;"></div>
-        <input type="color" id="panel-bg-pick" value="#ffffff">
+  <div class="psec">
+    <div class="ptitle">Color de fondo</div>
+    <div class="bgwrap">
+      <div class="bgbtn">
+        <div class="bgprev" id="p-bg-prev" style="background:#fff;"></div>
+        <input type="color" id="p-bg" value="#ffffff">
       </div>
-      <span style="font-size:12px;color:var(--muted);">Toca para cambiar el fondo del lienzo</span>
+      <span style="font-size:12px;color:var(--muted);">Toca para cambiar el fondo</span>
     </div>
   </div>
 
-  <div class="panel-section">
-    <div class="panel-title">Herramienta</div>
-    <div class="mode-grid" id="panel-modes"></div>
+  <div class="psec">
+    <div class="ptitle">Herramientas</div>
+    <div class="mgrid" id="panel-modes"></div>
   </div>
 </div>
 
@@ -479,210 +432,231 @@ html, body {
 
 <script>
 (function() {
-  var canvas      = document.getElementById('canvas');
-  var ctx         = canvas.getContext('2d');
-  var wrap        = document.getElementById('canvas-wrap');
-  var toast       = document.getElementById('toast');
-  var overlay     = document.getElementById('panel-overlay');
-  var panel       = document.getElementById('tools-panel');
+  'use strict';
 
-  var isMobile    = window.innerWidth < 768;
+  var canvas   = document.getElementById('canvas');
+  var ctx      = canvas.getContext('2d');
+  var wrap     = document.getElementById('canvas-wrap');
+  var overlay  = document.getElementById('overlay');
+  var panel    = document.getElementById('panel');
+  var toast    = document.getElementById('toast');
 
   // Estado
-  var W = 0, H = 0;
-  var color   = '#e05252';
-  var bgColor = '#ffffff';
-  var size    = 8;
-  var opacity = 1;
-  var mode    = 'pen';
-  var isDown  = false;
-  var startX  = 0, startY = 0;
-  var snapshot = null;
-  var history  = [];
-  var MAX_HIST = 50;
-  var toastTimer;
+  var W=0, H=0, color='#e05252', bgColor='#ffffff';
+  var size=8, opacity=1, mode='pen';
+  var isDown=false, startX=0, startY=0, snapshot=null;
+  var history=[], MAX_HIST=50, toastTimer;
+  var drawing = false; // flag para distinguir canvas de botones
+
+  var PALETTE = ['#ffffff','#111827','#e05252','#e8874e','#f0c040','#4caf7d','#4a90d9','#7b6bd4','#d46bab','#6b8aac','#8B4513','#2d4a1e'];
 
   var MODES = [
-    { id:'pen',     icon:'✏️', label:'Pincel'  },
-    { id:'line',    icon:'╱',  label:'Linea'   },
-    { id:'rect',    icon:'▭',  label:'Rect'    },
-    { id:'circle',  icon:'◯',  label:'Elipse'  },
-    { id:'fill',    icon:'🪣', label:'Relleno' },
-    { id:'eraser',  icon:'⬜', label:'Goma'    },
-    { id:'eyedrop', icon:'💧', label:'Color'   },
+    {id:'pen',    icon:'✏️', label:'Pincel'},
+    {id:'line',   icon:'╱',  label:'Linea'},
+    {id:'rect',   icon:'▭',  label:'Rect'},
+    {id:'circle', icon:'◯',  label:'Elipse'},
+    {id:'fill',   icon:'🪣', label:'Relleno'},
+    {id:'eraser', icon:'⬜', label:'Goma'},
+    {id:'eyedrop',icon:'💧', label:'Color'},
   ];
 
-  var PALETTE = [
-    '#ffffff','#111827','#e05252','#e8874e',
-    '#f0c040','#4caf7d','#4a90d9','#7b6bd4',
-    '#d46bab','#6b8aac','#8B4513','#2d4a1e'
-  ];
-
-  // ── Paleta en panel ──
-  var paletteEl = document.getElementById('panel-palette');
+  // ── Paleta ──
+  var palEl = document.getElementById('palette');
   PALETTE.forEach(function(c) {
-    var chip = document.createElement('div');
-    chip.className = 'palette-chip';
-    chip.style.background = c;
-    chip.style.border = '2px solid rgba(255,255,255,0.1)';
-    chip.addEventListener('click', function() {
-      color = c;
-      syncColor(c);
-      closePanel();
+    var el = document.createElement('div');
+    el.className = 'chip' + (c===color?' sel':'');
+    el.style.background = c;
+    el.addEventListener('touchend', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      setColor(c); closePanel();
     });
-    paletteEl.appendChild(chip);
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      setColor(c); closePanel();
+    });
+    palEl.appendChild(el);
   });
 
   // ── Modos en panel ──
-  var panelModesEl = document.getElementById('panel-modes');
+  var pmEl = document.getElementById('panel-modes');
   MODES.forEach(function(m) {
     var btn = document.createElement('button');
-    btn.className = 'mode-btn' + (m.id === mode ? ' active' : '');
+    btn.className = 'mbtn' + (m.id===mode?' active':'');
     btn.dataset.mode = m.id;
     btn.innerHTML = m.icon + '<span>' + m.label + '</span>';
-    btn.addEventListener('click', function() {
-      setMode(m.id);
-      closePanel();
-    });
-    panelModesEl.appendChild(btn);
+    addTapHandler(btn, function() { setMode(m.id); closePanel(); });
+    pmEl.appendChild(btn);
   });
 
-  function syncColor(c) {
-    var mp = document.getElementById('mob-color-preview');
-    if (mp) mp.style.background = c;
-    var dp = document.getElementById('dt-color-preview');
-    if (dp) dp.style.background = c;
-    var mcp = document.getElementById('mob-color-pick');
-    if (mcp) mcp.value = c;
-    var dcp = document.getElementById('dt-color-pick');
-    if (dcp) dcp.value = c;
+  // ── Tap handler seguro para iOS ──
+  // Usa touchend si disponible, fallback a click
+  function addTapHandler(el, fn) {
+    var moved = false;
+    el.addEventListener('touchstart', function(e) {
+      moved = false;
+    }, {passive: true});
+    el.addEventListener('touchmove', function(e) {
+      moved = true;
+    }, {passive: true});
+    el.addEventListener('touchend', function(e) {
+      if (!moved) {
+        e.preventDefault();
+        e.stopPropagation();
+        fn();
+      }
+    });
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      fn();
+    });
   }
 
-  // ── Panel open/close ──
-  document.getElementById('btn-more').addEventListener('click', openPanel);
-  overlay.addEventListener('click', closePanel);
-
-  function openPanel()  { panel.classList.add('open');  overlay.classList.add('open'); }
-  function closePanel() { panel.classList.remove('open'); overlay.classList.remove('open'); }
+  // ── Bottombar mode buttons ──
+  ['pen','line','rect','circle','fill','eraser'].forEach(function(m) {
+    var el = document.getElementById('bb-' + m);
+    if (!el) return;
+    addTapHandler(el, function() { setMode(m); });
+  });
 
   // ── Mobile color picker ──
-  document.getElementById('mob-color-pick').addEventListener('input', function(e) {
-    color = e.target.value;
-    syncColor(color);
-  });
+  var mobColor = document.getElementById('mob-color');
+  mobColor.addEventListener('input', function(e) { setColor(e.target.value); });
+  mobColor.addEventListener('change', function(e) { setColor(e.target.value); });
+
+  // ── Panel open/close ──
+  addTapHandler(document.getElementById('bb-more'), openPanel);
+  addTapHandler(overlay, closePanel);
+
+  function openPanel()  { panel.classList.add('open'); overlay.classList.add('open'); }
+  function closePanel() { panel.classList.remove('open'); overlay.classList.remove('open'); }
 
   // ── Panel sliders ──
-  document.getElementById('panel-size').addEventListener('input', function(e) {
+  document.getElementById('p-size').addEventListener('input', function(e) {
     size = +e.target.value;
-    document.getElementById('panel-size-val').textContent = size + 'px';
-    var dt = document.getElementById('dt-size');
-    if (dt) { dt.value = size; document.getElementById('dt-size-val').textContent = size + 'px'; }
+    document.getElementById('p-size-v').textContent = size + 'px';
+    syncDesktopSize();
   });
-
-  document.getElementById('panel-opacity').addEventListener('input', function(e) {
+  document.getElementById('p-opacity').addEventListener('input', function(e) {
     opacity = +e.target.value / 100;
-    document.getElementById('panel-opacity-val').textContent = e.target.value + '%';
-    var dt = document.getElementById('dt-opacity');
-    if (dt) { dt.value = e.target.value; document.getElementById('dt-opacity-val').textContent = e.target.value + '%'; }
+    document.getElementById('p-opacity-v').textContent = e.target.value + '%';
+    syncDesktopOpacity(e.target.value);
   });
-
-  document.getElementById('panel-bg-pick').addEventListener('input', function(e) {
-    bgColor = e.target.value;
-    document.getElementById('panel-bg-preview').style.background = bgColor;
-    var dp = document.getElementById('dt-bg-preview');
-    if (dp) { dp.style.background = bgColor; document.getElementById('dt-bg-pick').value = bgColor; }
-    fillBg();
-  });
-
-  // ── Mobile mode buttons en bottombar ──
-  MODES.slice(0,6).forEach(function(m) {
-    var el = document.getElementById('mob-' + m.id);
-    if (el) el.addEventListener('click', function() { setMode(m.id); });
+  document.getElementById('p-bg').addEventListener('input', function(e) {
+    setBgColor(e.target.value);
   });
 
   // ── Desktop controls ──
-  var dtColorPick = document.getElementById('dt-color-pick');
-  if (dtColorPick) dtColorPick.addEventListener('input', function(e) { color = e.target.value; syncColor(color); });
+  var dtColor = document.getElementById('dt-color');
+  if (dtColor) { dtColor.addEventListener('input', function(e) { setColor(e.target.value); }); }
 
   var dtSize = document.getElementById('dt-size');
   if (dtSize) dtSize.addEventListener('input', function(e) {
     size = +e.target.value;
-    document.getElementById('dt-size-val').textContent = size + 'px';
-    document.getElementById('panel-size').value = size;
-    document.getElementById('panel-size-val').textContent = size + 'px';
+    document.getElementById('dt-size-v').textContent = size + 'px';
+    document.getElementById('p-size').value = size;
+    document.getElementById('p-size-v').textContent = size + 'px';
   });
 
   var dtOpacity = document.getElementById('dt-opacity');
   if (dtOpacity) dtOpacity.addEventListener('input', function(e) {
     opacity = +e.target.value / 100;
-    document.getElementById('dt-opacity-val').textContent = e.target.value + '%';
-    document.getElementById('panel-opacity').value = e.target.value;
-    document.getElementById('panel-opacity-val').textContent = e.target.value + '%';
+    document.getElementById('dt-opacity-v').textContent = e.target.value + '%';
+    document.getElementById('p-opacity').value = e.target.value;
+    document.getElementById('p-opacity-v').textContent = e.target.value + '%';
   });
 
-  var dtBgPick = document.getElementById('dt-bg-pick');
-  if (dtBgPick) dtBgPick.addEventListener('input', function(e) {
-    bgColor = e.target.value;
-    document.getElementById('dt-bg-preview').style.background = bgColor;
-    document.getElementById('panel-bg-preview').style.background = bgColor;
-    document.getElementById('panel-bg-pick').value = bgColor;
-    fillBg();
-  });
+  var dtBg = document.getElementById('dt-bg');
+  if (dtBg) dtBg.addEventListener('input', function(e) { setBgColor(e.target.value); });
 
-  // Desktop mode buttons
   document.querySelectorAll('[data-mode]').forEach(function(btn) {
-    btn.addEventListener('click', function() { setMode(btn.dataset.mode); });
+    if (btn.closest('#desktop')) {
+      btn.addEventListener('click', function() { setMode(btn.dataset.mode); });
+    }
   });
 
-  // Acciones comunes
+  // Acciones
   ['mob-undo','dt-undo'].forEach(function(id) {
     var el = document.getElementById(id);
-    if (el) el.addEventListener('click', undo);
+    if (el) addTapHandler(el, undo);
   });
   ['mob-clear','dt-clear'].forEach(function(id) {
     var el = document.getElementById(id);
-    if (el) el.addEventListener('click', function() { saveHistory(); fillBg(); showToast('Lienzo limpio'); });
+    if (el) addTapHandler(el, function() { saveHistory(); fillBg(); showToast('Lienzo limpio'); });
   });
-  ['mob-download','dt-download'].forEach(function(id) {
+  ['mob-dl','dt-dl'].forEach(function(id) {
     var el = document.getElementById(id);
-    if (el) el.addEventListener('click', download);
+    if (el) addTapHandler(el, download);
   });
 
-  // ── Funciones ──
+  // ── Funciones core ──
+  function setColor(c) {
+    color = c;
+    var md = document.getElementById('mob-dot');
+    if (md) md.style.background = c;
+    var mc = document.getElementById('mob-color');
+    if (mc) mc.value = c;
+    var dd = document.getElementById('dt-dot');
+    if (dd) dd.style.background = c;
+    var dc = document.getElementById('dt-color');
+    if (dc) dc.value = c;
+    // chips
+    document.querySelectorAll('.chip').forEach(function(ch) {
+      ch.classList.toggle('sel', ch.style.background === c || rgbToHex(ch.style.background) === c);
+    });
+  }
+
+  function rgbToHex(rgb) {
+    var m = rgb.match(/(\d+),\s*(\d+),\s*(\d+)/);
+    if (!m) return rgb;
+    return '#' + [m[1],m[2],m[3]].map(function(v) { return (+v).toString(16).padStart(2,'0'); }).join('');
+  }
+
+  function setBgColor(c) {
+    bgColor = c;
+    document.getElementById('p-bg-prev').style.background = c;
+    document.getElementById('p-bg').value = c;
+    var dp = document.getElementById('dt-bg-prev');
+    if (dp) { dp.style.background = c; document.getElementById('dt-bg').value = c; }
+    fillBg();
+  }
+
+  function syncDesktopSize() {
+    var ds = document.getElementById('dt-size'), dv = document.getElementById('dt-size-v');
+    if (ds) { ds.value = size; dv.textContent = size + 'px'; }
+  }
+  function syncDesktopOpacity(v) {
+    var ds = document.getElementById('dt-opacity'), dv = document.getElementById('dt-opacity-v');
+    if (ds) { ds.value = v; dv.textContent = v + '%'; }
+  }
+
   function setMode(m) {
     mode = m;
     // bottombar
-    MODES.slice(0,6).forEach(function(mo) {
-      var el = document.getElementById('mob-' + mo.id);
-      if (el) el.classList.toggle('active', mo.id === m);
+    ['pen','line','rect','circle','fill','eraser'].forEach(function(k) {
+      var el = document.getElementById('bb-' + k);
+      if (el) el.classList.toggle('active', k === m);
     });
     // desktop
     document.querySelectorAll('[data-mode]').forEach(function(btn) {
       btn.classList.toggle('active', btn.dataset.mode === m);
     });
     // panel
-    document.querySelectorAll('.mode-btn').forEach(function(btn) {
+    document.querySelectorAll('.mbtn').forEach(function(btn) {
       btn.classList.toggle('active', btn.dataset.mode === m);
     });
     wrap.style.cursor = (m==='eyedrop'||m==='fill') ? 'cell' : 'crosshair';
   }
 
   function resize() {
-    var snap = (canvas.width > 0 && canvas.height > 0) ? ctx.getImageData(0,0,canvas.width,canvas.height) : null;
-    W = wrap.clientWidth;
-    H = wrap.clientHeight;
-    canvas.width  = W;
-    canvas.height = H;
+    var snap = (canvas.width>0&&canvas.height>0) ? ctx.getImageData(0,0,canvas.width,canvas.height) : null;
+    W = wrap.clientWidth; H = wrap.clientHeight;
+    canvas.width=W; canvas.height=H;
     fillBg();
     if (snap) ctx.putImageData(snap, 0, 0);
   }
 
   function fillBg() {
-    ctx.save();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0,0,W,H);
-    ctx.restore();
+    ctx.save(); ctx.globalAlpha=1; ctx.fillStyle=bgColor; ctx.fillRect(0,0,W,H); ctx.restore();
   }
 
   function saveHistory() {
@@ -701,7 +675,7 @@ html, body {
     a.href = canvas.toDataURL('image/png');
     a.download = 'happy_trace_' + Date.now() + '.png';
     a.click();
-    showToast('Imagen guardada');
+    showToast('Guardado');
   }
 
   function showToast(msg) {
@@ -726,55 +700,73 @@ html, body {
   }
 
   function floodFill(px, py) {
-    px = Math.round(px); py = Math.round(py);
-    var imgData = ctx.getImageData(0,0,W,H);
-    var data = imgData.data;
-    var idx = (py*W+px)*4;
-    var tr=data[idx],tg=data[idx+1],tb=data[idx+2],ta=data[idx+3];
-    var fc = hexToRgb(color);
+    px=Math.round(px); py=Math.round(py);
+    var img=ctx.getImageData(0,0,W,H), d=img.data;
+    var i=(py*W+px)*4, tr=d[i],tg=d[i+1],tb=d[i+2],ta=d[i+3];
+    var fc=hexToRgb(color);
     if (tr===fc[0]&&tg===fc[1]&&tb===fc[2]&&ta===255) return;
-    var stack = [[px,py]];
-    var visited = new Uint8Array(W*H);
-    while (stack.length) {
+    var stack=[[px,py]], vis=new Uint8Array(W*H);
+    while(stack.length) {
       var pt=stack.pop(), cx=pt[0], cy=pt[1];
-      if (cx<0||cx>=W||cy<0||cy>=H) return;
-      if (visited[cy*W+cx]) continue;
-      visited[cy*W+cx]=1;
-      var i=(cy*W+cx)*4;
-      if (Math.abs(data[i]-tr)>30||Math.abs(data[i+1]-tg)>30||Math.abs(data[i+2]-tb)>30||Math.abs(data[i+3]-ta)>30) continue;
-      data[i]=fc[0];data[i+1]=fc[1];data[i+2]=fc[2];data[i+3]=255;
+      if (cx<0||cx>=W||cy<0||cy>=H) continue;
+      if (vis[cy*W+cx]) continue;
+      vis[cy*W+cx]=1;
+      var j=(cy*W+cx)*4;
+      if (Math.abs(d[j]-tr)>30||Math.abs(d[j+1]-tg)>30||Math.abs(d[j+2]-tb)>30||Math.abs(d[j+3]-ta)>30) continue;
+      d[j]=fc[0];d[j+1]=fc[1];d[j+2]=fc[2];d[j+3]=255;
       stack.push([cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]);
     }
-    ctx.putImageData(imgData,0,0);
+    ctx.putImageData(img,0,0);
   }
 
-  function eyedrop(px, py) {
-    var d = ctx.getImageData(Math.round(px),Math.round(py),1,1).data;
-    var hex = '#'+[d[0],d[1],d[2]].map(function(v){return v.toString(16).padStart(2,'0');}).join('');
-    color = hex;
-    syncColor(hex);
-    setMode('pen');
-    showToast('Color: '+hex);
+  function eyedrop(px,py) {
+    var d=ctx.getImageData(Math.round(px),Math.round(py),1,1).data;
+    var hex='#'+[d[0],d[1],d[2]].map(function(v){return v.toString(16).padStart(2,'0');}).join('');
+    setColor(hex); setMode('pen'); showToast('Color: '+hex);
   }
 
   function getPos(e) {
-    var r = canvas.getBoundingClientRect();
-    var sx = W/r.width, sy = H/r.height;
-    var s = e.touches ? e.touches[0] : e;
-    return { x:(s.clientX-r.left)*sx, y:(s.clientY-r.top)*sy };
+    var r=canvas.getBoundingClientRect(), sx=W/r.width, sy=H/r.height;
+    var s=e.touches?e.touches[0]:e;
+    return {x:(s.clientX-r.left)*sx, y:(s.clientY-r.top)*sy};
   }
 
-  // ── Eventos canvas ──
-  canvas.addEventListener('mousedown', onDown);
-  canvas.addEventListener('touchstart', function(e){ e.preventDefault(); onDown(e); }, {passive:false});
-  document.addEventListener('mouseup', onUp);
-  document.addEventListener('touchend', function(e){ e.preventDefault(); onUp(e); }, {passive:false});
-  canvas.addEventListener('mousemove', onMove);
-  canvas.addEventListener('touchmove', function(e){ e.preventDefault(); onMove(e); }, {passive:false});
+  // ── EVENTOS CANVAS ──
+  // Solo el canvas captura touch para dibujar
+  // Los botones tienen sus propios handlers separados
 
-  function onDown(e) {
+  canvas.addEventListener('touchstart', function(e) {
+    // Si el panel está abierto, ignorar
     if (panel.classList.contains('open')) return;
+    e.preventDefault();
     var p = getPos(e);
+    onDown(p);
+  }, {passive: false});
+
+  canvas.addEventListener('touchmove', function(e) {
+    if (!isDown) return;
+    e.preventDefault();
+    var p = getPos(e);
+    onMove(p);
+  }, {passive: false});
+
+  canvas.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    onUp();
+  }, {passive: false});
+
+  canvas.addEventListener('mousedown', function(e) {
+    var p = getPos(e);
+    onDown(p);
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!isDown) return;
+    var p = getPos(e);
+    onMove(p);
+  });
+  document.addEventListener('mouseup', onUp);
+
+  function onDown(p) {
     if (mode==='eyedrop') { eyedrop(p.x,p.y); return; }
     if (mode==='fill')    { saveHistory(); floodFill(p.x,p.y); return; }
     saveHistory();
@@ -787,9 +779,7 @@ html, body {
     }
   }
 
-  function onMove(e) {
-    if (!isDown) return;
-    var p = getPos(e);
+  function onMove(p) {
     var erase = mode==='eraser';
     applyStyle(erase);
     if (mode==='pen'||erase) {
@@ -799,7 +789,7 @@ html, body {
     } else {
       ctx.putImageData(snapshot,0,0);
       ctx.beginPath();
-      if (mode==='line') { ctx.moveTo(startX,startY); ctx.lineTo(p.x,p.y); ctx.stroke(); }
+      if (mode==='line')   { ctx.moveTo(startX,startY); ctx.lineTo(p.x,p.y); ctx.stroke(); }
       else if (mode==='rect') { ctx.strokeRect(startX,startY,p.x-startX,p.y-startY); }
       else if (mode==='circle') {
         var rx=(p.x-startX)/2, ry=(p.y-startY)/2;
@@ -810,23 +800,15 @@ html, body {
 
   function onUp() { isDown=false; snapshot=null; }
 
-  // ── Teclado (desktop) ──
+  // Teclado
   document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey||e.metaKey)&&e.key==='z') { e.preventDefault(); undo(); return; }
     var map={p:'pen',e:'eraser',l:'line',r:'rect',c:'circle',f:'fill',i:'eyedrop'};
     if (map[e.key]&&!e.ctrlKey&&!e.metaKey) setMode(map[e.key]);
-    if (e.key==='[') { size=Math.max(1,size-2); syncSize(); }
-    if (e.key===']') { size=Math.min(80,size+2); syncSize(); }
+    if (e.key==='[') { size=Math.max(1,size-2); document.getElementById('p-size').value=size; document.getElementById('p-size-v').textContent=size+'px'; syncDesktopSize(); }
+    if (e.key===']') { size=Math.min(80,size+2); document.getElementById('p-size').value=size; document.getElementById('p-size-v').textContent=size+'px'; syncDesktopSize(); }
   });
 
-  function syncSize() {
-    var ps=document.getElementById('panel-size'), pv=document.getElementById('panel-size-val');
-    var ds=document.getElementById('dt-size'), dv=document.getElementById('dt-size-val');
-    if (ps) { ps.value=size; pv.textContent=size+'px'; }
-    if (ds) { ds.value=size; dv.textContent=size+'px'; }
-  }
-
-  // ── Init ──
   window.addEventListener('resize', resize);
   resize();
   setTimeout(resize, 100);
